@@ -25,3 +25,5 @@ A GUI to visualize the current environment may be a stretch goal.
 How was the workload divided? Who did what? (This can be in a private communication to the TA if you do not want it to be public).
 
 This is still TBD as the project goes on.
+
+[Link to CPSC 312 Wiki entry](https://wiki.ubc.ca/Course:Cpsc312:/EcosystemSimulation)
