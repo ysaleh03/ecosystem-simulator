@@ -26,4 +26,4 @@ How was the workload divided? Who did what? (This can be in a private communicat
 
 This is still TBD as the project goes on.
 
-[Link to CPSC 312 Wiki entry](https://wiki.ubc.ca/Course:Cpsc312:/EcosystemSimulation)
+[Link to UBC Wiki entry](https://wiki.ubc.ca/Course:Cpsc312:/EcosystemSimulation)
