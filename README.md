@@ -7,23 +7,19 @@ Enter our idea: To create an immersive simulation of emergent ecosystems.
 
 In our simulator, different organisms in the ecosystem will be able interact with one another, their environments and live out full lives from birth, to eating and reproducing, to death. Offspring will inherit behavioral traits from their parents, and may even mutate slightly to simulate realistic evolution. These traits will dictate what decisions certain animals are more likely to make.
 
-On our end, we will collect data from these simulations for statistical analysis. Eventually, we will be able to make inferences on which behaviors are more beneficial in certain conditions, and whether any interesting correlation can be seen between different traits emerging in an ecosystem.
-
 The inspiration for this came from [Coding Adventure: Simulating an Ecosystem](https://www.youtube.com/watch?v=r_It_X7v-1E) and the 2023 CPSC 312 Game of Life Project. 
 
 ### What is the something extra?
-Something extra (as of now) is doing some statistical analysis and inferences based on our output.
-
-A goal might be how close we can get to a more realistic simulation of an actual ecosystem.
-
-A GUI to visualize the current environment may be a stretch goal.
+Something extra is a GUI to visualize the current environment.
 
 ### What did we learn from doing this?
-(This should be written after you have done the work.) What is the bottom-line? Is functional programming suitable for (part-of) the task? Make sure you include the evidence for your claims.
+This project really solidified our understanding of Classes and Types in Haskell, and how different they are.
 
 ### Work division
-How was the workload divided? Who did what? (This can be in a private communication to the TA if you do not want it to be public).
+Jenilee worked on the part of the project concerned with setting up and constructing the Map.
 
-This is still TBD as the project goes on.
+Oleg worked on the part of the project concerned with the progression of the Simulation, including the World monad.
+
+Youssef worked on creating an API for the backend, as well as a Gloss frontend.
 
 [Link to UBC Wiki entry](https://wiki.ubc.ca/Course:Cpsc312:/EcosystemSimulation)
