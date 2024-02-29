@@ -87,9 +87,9 @@ makeRandomResource n gen =
 makeRandomAnimal :: RandomGen g => Int -> g -> (Animal, g)
 makeRandomAnimal n gen =
   if whichAnimal == 0 then
-    (Fox (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 6), gen6)
+    (Fox (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 365), gen6)
   else
-    (Rabbit (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 6), gen6)
+    (Rabbit (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 365), gen6)
   where
     (senseR,gen1) = randomR (2,5) gen
     (speed,gen2) = randomR (1,5) gen1

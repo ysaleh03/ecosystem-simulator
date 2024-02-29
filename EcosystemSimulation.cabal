@@ -69,6 +69,7 @@ executable EcosystemSimulation
   other-modules:    MainMenu,
                     Simulator,
                     Entity,
+                    EntityFunctions,
                     Map,
                     Simulation
 
@@ -78,13 +79,15 @@ executable EcosystemSimulation
   -- Other library packages from which modules are imported.
   build-depends:    base ^>=4.17.2.1,
                     gloss,
+                    gloss-juicy,
                     list-extras,
                     random
 
   -- Directories containing source files.
   hs-source-dirs:   app,
                     app/src,
-                    app/ui
+                    app/ui,
+                    app/icons
 
   -- Base language which the package is written in.
   default-language: Haskell2010
