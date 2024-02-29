@@ -12,8 +12,8 @@ import World
 import Debug.Trace
 import System.Random
 
-newSimulation :: RandomGen g => Int -> Int -> Int -> g -> World (Environment (Either Animal Resource))
-newSimulation size time numEntities gen = makeWorld (merge3DArrays animalMap resourceMap) time
+newSimulation :: Int -> Int -> Int -> StdGen -> World (Environment (Either Animal Resource))
+newSimulation size time numEntities gen = makeWorld (merge3DArrays animalMap resourceMap) time gen2
   where
     (animalMap, gen1) = makeAnimalMap size numEntities gen
     (resourceMap, gen2) = makeResourceMap size (5*numEntities) gen1
@@ -25,5 +25,5 @@ simulateDayHelper :: Environment (Either Animal Resource) -> World (Environment 
 simulateDayHelper env = simulateDay (World env)
 
 simulateNext :: World (Environment (Either Animal Resource)) -> World (Environment (Either Animal Resource))
-simulateNext wrld@(World (Environment _ _ m))= trace (show m ++ "\n" ++ worldInfo wrld ++ "\n") ((simulateDay wrld) >>= updateTimer)
+simulateNext wrld@(World (Environment _ _ m _))= trace (show m ++ "\n" ++ worldInfo wrld ++ "\n") ((simulateDay wrld) >>= updateTimer)
 
