@@ -95,11 +95,15 @@ makeRandomAnimal n gen =
     (yPos,gen5) = randomR (0,n-1) gen4
     (binaryAnimal, gen6) = randomR (True,False) gen5
 
-makeAnimalMap :: Int -> Int -> Map (Either Animal Resource)
-makeAnimalMap size numAnimals = foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size (mkStdGen 9000)] [0..numAnimals])))
+makeAnimalMap :: RandomGen g => Int -> Int -> g -> (Map (Either Animal Resource), g)
+makeAnimalMap size numAnimals gen = (foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ pairs)), head $ snd pairs)
+  where
+    pairs = unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size gen] [0..numAnimals]) 
 
-makeResourceMap :: Int -> Int -> Map (Either Animal Resource)
-makeResourceMap size numResources = foldr replaceEntityAt (makeEmptyMap size) (map (Right) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomResource size g):((a,g):t)) [makeRandomResource size (mkStdGen 123456789)] [0..numResources])))
+makeResourceMap :: RandomGen g => Int -> Int -> g -> (Map (Either Animal Resource), g)
+makeResourceMap size numResources gen = (foldr replaceEntityAt (makeEmptyMap size) (map (Right) (fst $ pairs)), head $ snd pairs)
+  where
+    pairs = unzip (foldr (\ _ ((a, g):t) -> (makeRandomResource size g):((a,g):t)) [makeRandomResource size gen] [0..numResources]) 
 
 makeWorld :: Entity e => Map e -> Int -> World (Environment e)
 makeWorld map time = World (Environment time (foldr (\x y -> insertToSorted x y (\ (_,g) (_,h) -> g > h)) [] [getPosOrd z | x<-map, y<-x, z<-y]) map)
