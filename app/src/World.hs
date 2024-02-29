@@ -6,7 +6,9 @@ module World (
   Map (..),
   Environment(..),
   makeWorld,
-  makeMap,
+  makeAnimalMap,
+  makeResourceMap,
+  merge3DArrays,
   getMap,
   simulateDay
 ) where
@@ -61,15 +63,18 @@ makeRandomAnimal n gen =
     (yPos,gen5) = randomR (0,n-1) gen4
     (binaryAnimal, gen6) = randomR (True,False) gen5
 
-makeMap :: Int -> Int -> Map Animal
-makeMap size numAnimals = foldr replaceEntityAt (makeEmptyMap size) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size (mkStdGen 3)] [0..numAnimals])) 
+makeAnimalMap :: Int -> Int -> Map (Either Animal Resource)
+makeAnimalMap size numAnimals = foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size (mkStdGen 3)] [0..numAnimals])))
+
+makeResourceMap :: Int -> Int -> Map (Either Animal Resource)
+makeResourceMap size numResources = foldr replaceEntityAt (makeEmptyMap size) (map (Right) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomResource size g):((a,g):t)) [makeRandomResource size (mkStdGen 3)] [0..numResources])))
 
 makeWorld :: Entity e => Map e -> Int -> World (Environment e)
 makeWorld map time = World (Environment time (foldr (\x y -> insertToSorted x y (\ (_,g) (_,h) -> g > h)) [] [getPosOrd z | x<-map, y<-x, z<-y]) map)
 
 -- execute action updates the world by querying the action the animal wants to take,
 -- and updating the world state based on that action
-executeAction :: Entity e => PosOrd -> Environment e -> World (Environment e)
+executeAction :: PosOrd -> Environment (Either Animal Resource) -> World (Environment (Either Animal Resource))
 executeAction ((x, y, z), _) env@(Environment time poss map)  = 
   let entity = map !! x !! y !! z in getAction (World env) entity
 
@@ -82,7 +87,7 @@ getTimer (Environment time _ _) = time
 getMap :: World (Environment e) -> Map e
 getMap (World (Environment _ _ map)) = map
 
-updateEntityList :: Entity e => Environment e -> World (Environment e)
+updateEntityList :: Environment (Either Animal Resource) -> World (Environment (Either Animal Resource))
 updateEntityList (Environment time poss map) = 
   World (Environment time newPosOrds updatedMap)
   where
@@ -94,31 +99,12 @@ updateEntityList (Environment time poss map) =
     flattenedList = concat $ concat updatedMap
     newPosOrds = foldr (\x y -> let posOrd = (getPos x, getSpeed x) in insertToSorted posOrd y (\(_,speed1) (_,speed2) -> speed1 > speed2)) [] flattenedList
 
-simulateDay :: Entity e => World (Environment e) -> World (Environment e)
+simulateDay :: World (Environment (Either Animal Resource)) -> World (Environment (Either Animal Resource))
 --simulateDay (World (Environment 0 entityPositions map)) = return (Environment 0 entityPositions map)
 --simulateDay (World (Environment time [] map)) = return (Environment time [] map)
 simulateDay world@(World env@(Environment time entityPositions map)) = 
     -- for each entity, carry out an action
---    newEnv <- foldl (\currWorld posOrd -> currWorld >>= executeAction posOrd) world entityPositions
---    newEnv <- foldl (\currWorld@(World (Environment ctime cposs cmap)) _ -> if null cposs then currWorld else currWorld >>= executeAction (head cposs)) world [0..(length entityPositions)]
     if null entityPositions then
-      do
-      newEnv <- updateEntityList env
-      return newEnv
+      updateEntityList env
     else
-      do
-      newEnv <- simulateDay (executeAction (head entityPositions) env)
-      -- execute the decision and update the world state
-      -- Update the timer (decrement by one)
-      --newEnv2 <- decrementTimer newEnv
-      -- Update the entity list according to the map (read all entities and add them)
-      --    also, remove any whose lifespans expired
-      --newWorld <- updateEntityList newEnv
-
-      return newEnv
-    {-
-    if (getTimer newEnv) > 0 then
-      simulateDay (World newEnv)
-    else
-      World newEnv
-      -}
+      simulateDay (executeAction (head entityPositions) env)

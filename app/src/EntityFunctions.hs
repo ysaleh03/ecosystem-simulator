@@ -18,6 +18,7 @@ module EntityFunctions (
 import Entity
 import Data.List.Extras.Argmax
 import Data.List
+import Data.Maybe
 import System.Random
 
 -- initialize random  TODO
@@ -30,9 +31,11 @@ insertToSorted e (h:t) comp
   | comp e h = e:(h:t)
   | otherwise = h:(insertToSorted e t comp)
 
+-- get the position and speed pair from an entity
 getPosOrdEntity :: Entity a => a -> PosOrd
 getPosOrdEntity entity = (getPos entity, getSpeed entity)
 
+-- get the distance between an entity and some position (ignores the speed of the PosOrd pair) on the x-y plane
 distance :: Entity e => (e, PosOrd) -> Int
 distance (e, ((x1,y1,_), _)) = 
   let ((x2,y2,_), _) = getPosOrd e in (abs (x2 - x1)) + (abs (y2 - y1))
@@ -62,37 +65,46 @@ replaceEntityAt entity worldMap =
 
 {- DEFAULTANIMAL HELPERS-}
 
+-- the function that is called when a "day/cycle" passes. Decreases their lifetime and their urges
 ageUpDefaultAnimal :: DefaultAnimal -> DefaultAnimal
 ageUpDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime) =
   DefaultAnimal (hunger-1.0) (thirst-1.0) (urge-1.0) senseR speed sex pos (lifetime - 1)
 
+-- returns a copy of the DefaultAnimal with an updated position
 updatePosDefaultAnimal :: DefaultAnimal -> Pos -> DefaultAnimal
 updatePosDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex _ lifetime) pos =
   DefaultAnimal hunger thirst urge senseR speed sex pos lifetime
 
+-- gets the hunger of a DefaultAnimal
 getHungerDefaultAnimal :: DefaultAnimal -> Double
 getHungerDefaultAnimal (DefaultAnimal hunger _ _ _ _ _ _ _) = hunger
 
+-- gets the thirst of a DefaultAnimal
 getThirstDefaultAnimal :: DefaultAnimal -> Double
 getThirstDefaultAnimal (DefaultAnimal _ thirst _ _ _ _ _ _) = thirst
 
+-- gets the urge of a DefaultAnimal
 getUrgeDefaultAnimal :: DefaultAnimal -> Double
 getUrgeDefaultAnimal (DefaultAnimal _ _ urge _ _ _ _ _) = urge
 
+-- gets the sense radius of a DefaultAnimal
 getSenseRadiusDefaultAnimal :: DefaultAnimal -> Int
 getSenseRadiusDefaultAnimal (DefaultAnimal _ _ _ senseR _ _ _ _) = senseR
 
 -- for eat, drink, mate, etc. 
 -- Maybe we should have values for satiated (max amount they can store instead of 10.0)
 --  and also values for how much the meters decrement by each day?
+--  brings the eat meter to its max value (animal is satiated)
 eatDefaultAnimal :: DefaultAnimal -> DefaultAnimal
 eatDefaultAnimal (DefaultAnimal _ thirst urge senseR speed sex pos lifetime) =
   DefaultAnimal 10.0 thirst urge senseR speed sex pos lifetime
 
+-- brings the drink meter to its max value (animal is quenched)
 drinkDefaultAnimal :: DefaultAnimal -> DefaultAnimal
 drinkDefaultAnimal (DefaultAnimal hunger _ urge senseR speed sex pos lifetime) =
   DefaultAnimal hunger 10.0 urge senseR speed sex pos lifetime
 
+-- brings the urge meter to its max value (animal is satisfied)
 mateDefaultAnimal :: DefaultAnimal -> DefaultAnimal
 mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime) =
   DefaultAnimal hunger thirst 10.0 senseR speed sex pos lifetime
@@ -101,6 +113,7 @@ mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime) 
 
 {- ANIMAL HELPERS -}
 
+-- Helper function for making sure foxes and rabbits can only mate with foxes and rabbits of the opposite gender, respectively.
 checkCanMate :: Animal -> Animal -> Bool
 checkCanMate (Fox (DefaultAnimal _ _ _ _ _ sex1 pos1 _)) (Fox (DefaultAnimal _ _ _ _ _ sex2 pos2 _)) =
   sex1 /= sex2 && pos1 == pos2
@@ -108,30 +121,32 @@ checkCanMate (Rabbit (DefaultAnimal _ _ _ _ _ sex1 pos1 _)) (Rabbit (DefaultAnim
   sex1 /= sex2 && pos1 == pos2
 checkCanMate _ _ = False
 
+-- helper for returning the DefaultAnimal of an Animal
 getDefaultAnimal :: Animal -> DefaultAnimal
 getDefaultAnimal (Fox da) = da
 getDefaultAnimal (Rabbit da) = da
 
-createBabyAnimal :: World (Environment Animal) -> Animal -> Animal -> World (Environment Animal)
+-- creates a new Animal with inherited traits at the position of the parents, given two parents
+createBabyAnimal :: World (Environment (Either Animal Resource)) -> Animal -> Animal -> World (Environment (Either Animal Resource))
 createBabyAnimal (World (Environment time poss worldMap)) (Fox (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1)) (Fox (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2))
   | u1 > u2 = 
-    let babyAnimal = (Fox (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)) 
-        newMap = replaceEntityAt babyAnimal worldMap
+    let babyAnimal = Fox (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)
+        newMap = replaceEntityAt (Left babyAnimal) worldMap
     in World (Environment time poss newMap)
     
   | otherwise = 
-    let babyAnimal = (Fox (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10))
-        newMap = replaceEntityAt babyAnimal worldMap
+    let babyAnimal = Fox (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10)
+        newMap = replaceEntityAt (Left babyAnimal) worldMap
     in World (Environment time poss newMap)
 createBabyAnimal (World (Environment time poss worldMap)) (Rabbit (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1)) (Rabbit (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2))
   | u1 > u2 = 
-    let babyAnimal = (Rabbit (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)) 
-        newMap = replaceEntityAt babyAnimal worldMap
+    let babyAnimal = Rabbit (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)
+        newMap = replaceEntityAt (Left babyAnimal) worldMap
     in World (Environment time poss newMap)
     
   | otherwise = 
-    let babyAnimal = (Rabbit (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10))
-        newMap = replaceEntityAt babyAnimal worldMap
+    let babyAnimal = Rabbit (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10)
+        newMap = replaceEntityAt (Left babyAnimal) worldMap
     in World (Environment time poss newMap)
 createBabyAnimal world _ _ = world
 
@@ -290,23 +305,24 @@ instance Entity Animal where
   eat (World (Environment time poss worldMap)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
     World (Environment time poss newMap)
     where
-      satiatedAnimal = Fox $ eatDefaultAnimal da
+      satiatedAnimal = Left $ Fox $ eatDefaultAnimal da
       entities = worldMap !! x !! y
       newFood = die $ findFirstFood entities 
       -- should never reach the empty list case, since we check beforehand that a food item exists
       findFirstFood (entity:entities) = if isFood $ isAnimal entity then entity else findFirstFood entities
-      findFirstFood [] = Rabbit (DefaultAnimal 10.0 10.0 10.0 2 2 True (x,y,0) (-1))
+      findFirstFood [] = Left (Rabbit (DefaultAnimal 10.0 10.0 10.0 2 2 True (x,y,0) (-1)))
       isFood (Just rabbit@(Rabbit _)) = not $ isExpired rabbit
       isFood _ = False
       newMap = replaceEntityAt satiatedAnimal (replaceEntityAt newFood worldMap)
   eat (World (Environment time poss worldMap)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
     World (Environment time poss newMap)
     where
-      satiatedAnimal = Rabbit $ eatDefaultAnimal da
+      satiatedAnimal = Left $ Rabbit $ eatDefaultAnimal da
       entities = worldMap !! x !! y
       newFood = die $ findFirstFood entities
       -- should never reach the empty list case, since we check beforehand that a food item exists
       findFirstFood (entity:entities) = if isFood $ isResource entity then entity else findFirstFood entities
+      findFirstFood [] = Right (Grass 0.0 (x,y,0))
       isFood (Just grass@(Grass _ _)) = not $ isExpired grass
       isFood _ = False
       newMap = replaceEntityAt satiatedAnimal (replaceEntityAt newFood worldMap)
@@ -314,22 +330,24 @@ instance Entity Animal where
   drink (World (Environment time poss worldMap)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
     World (Environment time poss newMap)
     where
-      quenchedAnimal = Fox $ drinkDefaultAnimal da
+      quenchedAnimal = Left $ Fox $ drinkDefaultAnimal da
       entities = worldMap !! x !! y
       newDrink = die $ findFirstDrink entities
       -- should never reach the empty list case, since we check beforehand that a drink item exists
       findFirstDrink (entity:entities) = if isDrink $ isResource entity then entity else findFirstDrink entities
+      findFirstDrink [] = Right (Water 0.0 (x,y,0))
       isDrink (Just water@(Water _ _)) = not $ isExpired water
       isDrink _ = False
       newMap = replaceEntityAt quenchedAnimal (replaceEntityAt newDrink worldMap)
   drink (World (Environment time poss worldMap)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
     World (Environment time poss newMap)
     where
-      quenchedAnimal = Rabbit $ drinkDefaultAnimal da
+      quenchedAnimal = Left $ Rabbit $ drinkDefaultAnimal da
       entities = worldMap !! x !! y
       newDrink = die $ findFirstDrink entities
       -- should never reach the empty list case, since we check beforehand that a drink item exists
       findFirstDrink (entity:entities) = if isDrink $ isResource entity then entity else findFirstDrink entities
+      findFirstDrink [] = Right (Water 0.0 (x,y,0))
       isDrink (Just water@(Water _ _)) = not $ isExpired water
       isDrink _ = False
       newMap = replaceEntityAt quenchedAnimal (replaceEntityAt newDrink worldMap)
@@ -337,11 +355,11 @@ instance Entity Animal where
   mate (World (Environment time poss worldMap)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) = 
     createBabyAnimal (World (Environment time poss satisfiedAnimalMap)) (Fox da) (Fox dan)
     where
-      satisfiedAnimal1 = Fox $ mateDefaultAnimal da
-      satisfiedAnimal2 = Fox $ mateDefaultAnimal dan
+      satisfiedAnimal1 = Left $ Fox $ mateDefaultAnimal da
+      satisfiedAnimal2 = Left $ Fox $ mateDefaultAnimal dan
       newMap = worldMap
       entities = worldMap !! x !! y
-      firstValidMate = head [mate | mate<-entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
+      (Left firstValidMate) = head [mate | mate<-entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
       dan = getDefaultAnimal firstValidMate
       maybeCheckCanMate :: Maybe Animal -> Maybe Animal -> Bool
       maybeCheckCanMate (Just animal1) (Just animal2) = checkCanMate animal1 animal2
@@ -350,11 +368,11 @@ instance Entity Animal where
   mate (World (Environment time poss worldMap)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) = 
     createBabyAnimal (World (Environment time poss satisfiedAnimalMap)) (Rabbit da) (Rabbit dan)
     where
-      satisfiedAnimal1 = Rabbit $ mateDefaultAnimal da
-      satisfiedAnimal2 = Rabbit $ mateDefaultAnimal dan
+      satisfiedAnimal1 = Left $ Rabbit $ mateDefaultAnimal da
+      satisfiedAnimal2 = Left $ Rabbit $ mateDefaultAnimal dan
       newMap = worldMap
       entities = worldMap !! x !! y
-      firstValidMate = head [mate | mate<-entities, maybeCheckCanMate (Just (Rabbit da)) (isAnimal mate)]
+      (Left firstValidMate) = head [mate | mate<-entities, maybeCheckCanMate (Just (Rabbit da)) (isAnimal mate)]
       dan = getDefaultAnimal firstValidMate
       maybeCheckCanMate :: Maybe Animal -> Maybe Animal -> Bool
       maybeCheckCanMate (Just animal1) (Just animal2) = checkCanMate animal1 animal2
@@ -375,7 +393,7 @@ instance Entity Animal where
       let 
         -- update worldMap
         entitiesAtDst = removedEntityMap !! dstX !! dstY
-        newMap = replaceEntityAt (updatePos entity (dstX,dstY,length entitiesAtDst)) removedEntityMap
+        newMap = replaceEntityAt (updatePos (Left entity) (dstX,dstY,length entitiesAtDst)) removedEntityMap
         -- update poss (MAYBE NOT NEEDED, SINCE updateEntityList ALREADY DOES THIS) TODO?
         newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
       in World (Environment time newPoss newMap)
@@ -388,14 +406,14 @@ instance Entity Animal where
         let 
           newDstX = srcX+speed
           entitiesAtDst = removedEntityMap !! newDstX !! srcY
-          newMap = replaceEntityAt (updatePos entity (newDstX,srcY,length entitiesAtDst)) removedEntityMap
+          newMap = replaceEntityAt (updatePos (Left entity) (newDstX,srcY,length entitiesAtDst)) removedEntityMap
           newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
         in World (Environment time newPoss newMap)
       else
         let
           newDstX = srcX-speed
           entitiesAtDst = removedEntityMap !! newDstX !! srcY
-          newMap = replaceEntityAt (updatePos entity (newDstX,srcY,length entitiesAtDst)) removedEntityMap
+          newMap = replaceEntityAt (updatePos (Left entity) (newDstX,srcY,length entitiesAtDst)) removedEntityMap
           newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
        in World (Environment time newPoss newMap)
     | otherwise =
@@ -409,7 +427,7 @@ instance Entity Animal where
               newDstX = srcX+xDistance
               newDstY = srcY+yDistance
               entitiesAtDst = removedEntityMap !! newDstX !! newDstY
-              newMap = replaceEntityAt (updatePos entity (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
+              newMap = replaceEntityAt (updatePos (Left entity) (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
               newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
             in World (Environment time newPoss newMap)
           else
@@ -417,7 +435,7 @@ instance Entity Animal where
               newDstX = srcX+xDistance
               newDstY = srcY-xDistance
               entitiesAtDst = removedEntityMap !! newDstX !! newDstY
-              newMap = replaceEntityAt (updatePos entity (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
+              newMap = replaceEntityAt (updatePos (Left entity) (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
               newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
             in World (Environment time newPoss newMap)
         else
@@ -426,7 +444,7 @@ instance Entity Animal where
               newDstX = srcX-xDistance
               newDstY = srcY+yDistance
               entitiesAtDst = removedEntityMap !! newDstX !! newDstY
-              newMap = replaceEntityAt (updatePos entity (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
+              newMap = replaceEntityAt (updatePos (Left entity) (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
               newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
             in World (Environment time newPoss newMap)
           else
@@ -434,7 +452,7 @@ instance Entity Animal where
               newDstX = srcX-xDistance
               newDstY = srcY-xDistance
               entitiesAtDst = removedEntityMap !! newDstX !! newDstY
-              newMap = replaceEntityAt (updatePos entity (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
+              newMap = replaceEntityAt (updatePos (Left entity) (newDstX,newDstY,length entitiesAtDst)) removedEntityMap
               newPoss = [if (px==srcX && py==srcY && pz>srcZ) then ((px,py,pz-1),spd) else ppos | ppos@((px,py,pz),spd)<-poss]
             in World (Environment time newPoss newMap)
     where
@@ -494,6 +512,57 @@ instance Entity Resource where
   die (Grass amt pos) = Grass (amt-10.0) pos
   die (Water amt pos) = Water (amt-10.0) pos
 
+instance (Entity l, Entity r) => Entity (Either l r) where
+
+  eat world (Left a) = eat world a
+  eat world (Right a) = eat world a
+
+  drink world (Left a) = drink world a
+  drink world (Right a) = drink world a
+
+  mate world (Left a) = mate world a
+  mate world (Right  a) = mate world a
+
+  move world (Left a) = move world a
+  move world (Right a) = move world a
+
+  getAction world (Left a) = getAction world a
+  getAction world (Right a) = getAction world a
+
+  wander world (Left a) = wander world a
+  wander world (Right a) = wander world a
+
+  findWant world (Left a) want = [t | t<-findWant world a want]
+  findWant world (Right a) want = [t | t<-findWant world a want]
+
+  getHunger = either (getHunger) (getHunger)
+  getThirst = either (getThirst) (getThirst)
+  getUrge = either (getUrge) (getUrge)
+  getSenseRadius = either (getSenseRadius) (getSenseRadius)
+  getSpeed = either (getSpeed)  (getSpeed)
+  getPos = either (getPos) (getPos)
+
+  isOnWant (Left a) = isOnWant a
+  isOnWant (Right a) = isOnWant a
+
+  filterWant (Left a) lst want = [t | t<-filterWant a lst want]
+  filterWant (Right a) lst want = [t | t<-filterWant a lst want]
+
+  ageUp (Left a) = Left $ ageUp a
+  ageUp (Right a) = Right $ ageUp a
+
+  isExpired = either (isExpired) (isExpired)
+
+  updatePos (Left a) pos = Left $ updatePos a pos
+  updatePos (Right a) pos = Right $ updatePos a pos
+
+  getPosOrd = either (getPosOrd) (getPosOrd)
+
+  isResource = either (isResource) (isResource)
+  isAnimal = either (isAnimal) (isAnimal)
+
+  die (Left a) = Left $ die a
+  die (Right a) = Right $ die a
 
 
 {-
