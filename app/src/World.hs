@@ -19,6 +19,38 @@ import EntityFunctions
 import System.Random
 --import Init3DGridFunction
 
+merge3DArrays :: (Entity e) => [[[e]]] -> [[[e]]] -> [[[e]]]
+merge3DArrays [] [] = []
+merge3DArrays (x:xs) (y:ys) = merge2DArrays x y : merge3DArrays xs ys
+merge3DArrays _ _ = error "Arrays must have the same dimensions"
+
+merge2DArrays :: (Entity e) => [[e]] -> [[e]] -> [[e]]
+merge2DArrays [] [] = []
+merge2DArrays (x:xs) (y:ys) = (updateAllZCoords (mergeRows x y)) : merge2DArrays xs ys
+merge2DArrays _ _ = error "Arrays must have the same dimensions"
+
+mergeRows :: (Entity e) => [e] -> [e] -> [e]
+mergeRows [] [] = []
+mergeRows (x:xs) (y:ys) = mergeAnimals x y ++ mergeRows xs ys
+mergeRows x [] = x
+mergeRows [] y = y
+
+mergeAnimals :: (Entity e) => e -> e -> [e]
+mergeAnimals entity1 entity2 = [entity1, entity2]
+
+updateAllZCoords :: (Entity e) => [e] -> [e]
+updateAllZCoords entityLst =
+  let (x, y) = getXY (head entityLst) -- Extract x and y from the first entity
+    in [updatePos e (x, y, z) | (e, z) <- zip entityLst [0 ..]] -- Update z for each entity
+
+getXY :: (Entity e) => e -> (Int, Int)
+getXY anEntity = (getFirst (getPos anEntity), getSecond (getPos anEntity))
+
+getFirst :: (a, b, c) -> a
+getFirst (x, _, _) = x
+
+getSecond :: (a, b, c) -> b
+getSecond (_, y, _) = y
 
 envInfo :: Environment e -> String
 envInfo (Environment time orderedPositions map) =
@@ -64,10 +96,10 @@ makeRandomAnimal n gen =
     (binaryAnimal, gen6) = randomR (True,False) gen5
 
 makeAnimalMap :: Int -> Int -> Map (Either Animal Resource)
-makeAnimalMap size numAnimals = foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size (mkStdGen 3)] [0..numAnimals])))
+makeAnimalMap size numAnimals = foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomAnimal size g):((a,g):t)) [makeRandomAnimal size (mkStdGen 9000)] [0..numAnimals])))
 
 makeResourceMap :: Int -> Int -> Map (Either Animal Resource)
-makeResourceMap size numResources = foldr replaceEntityAt (makeEmptyMap size) (map (Right) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomResource size g):((a,g):t)) [makeRandomResource size (mkStdGen 3)] [0..numResources])))
+makeResourceMap size numResources = foldr replaceEntityAt (makeEmptyMap size) (map (Right) (fst $ unzip (foldr (\ _ ((a, g):t) -> (makeRandomResource size g):((a,g):t)) [makeRandomResource size (mkStdGen 123456789)] [0..numResources])))
 
 makeWorld :: Entity e => Map e -> Int -> World (Environment e)
 makeWorld map time = World (Environment time (foldr (\x y -> insertToSorted x y (\ (_,g) (_,h) -> g > h)) [] [getPosOrd z | x<-map, y<-x, z<-y]) map)

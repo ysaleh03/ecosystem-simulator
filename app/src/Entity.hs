@@ -29,7 +29,7 @@ module Entity (
   Want (..),
   Map (..),
   randomGrid3D,
-  merge3DArrays,
+  --merge3DArrays,
   makeEmptyMap,
   Pos (..)
 ) where

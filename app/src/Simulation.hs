@@ -9,9 +9,12 @@ module Simulation (
 ) where
 
 import World
+import Debug.Trace
 
 newSimulation :: Int -> Int -> Int -> World (Environment (Either Animal Resource))
-newSimulation size time numEntities = makeWorld (merge3DArrays (makeAnimalMap size numEntities) (makeResourceMap size numEntities)) time
+newSimulation size time numEntities = trace (show mp) wrld
+  where
+    wrld@(World (Environment _ _ mp)) = makeWorld (merge3DArrays (makeAnimalMap size numEntities) (makeResourceMap size (5*numEntities))) time
 
 getEnv :: World (Environment (Either Animal Resource)) -> Environment (Either Animal Resource)
 getEnv (World env) = env

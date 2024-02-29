@@ -3,7 +3,7 @@ module Map (
   Pos (..),
   OrdPos(..),
   randomGrid3D,
-  merge3DArrays,
+  --merge3DArrays,
   makeEmptyMap
 ) where
 
@@ -17,10 +17,12 @@ makeEmptyMap :: Int -> [[[t]]]
 makeEmptyMap n =
   [[[] | _<-[1..n]] | _<-[1..n]]
 
+{-
 merge3DArrays :: [[[t]]] -> [[[t]]] -> [[[t]]]
 merge3DArrays [] [] = []
 merge3DArrays (x:xs) (y:ys) = merge2DArrays x y : merge3DArrays xs ys
 merge3DArrays _ _ = error "Arrays must have the same dimensions"
+-}
 
 merge2DArrays :: [[t]] -> [[t]] -> [[t]]
 merge2DArrays [] [] = []
