@@ -3,6 +3,7 @@ module Simulator where
 import Control.Monad
 import Graphics.Gloss
 import Simulation
+import System.Random
 
 --type Point = (Float, Float)
 
@@ -40,12 +41,14 @@ renderSim wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0..dim-1] ]
       Translate x y $ pictures [Color color $ rectangleSolid 50 50, renderEithers (mapData !! i !! j)]
 
 getSimulator :: IO ()
-getSimulator = play
-  (InWindow "Simulator" (500, 500) (0, 0))
-  white
-  1
-  (newSimulation 10 0 20) 
-  renderSim
-  (\_ state -> state)
-  (\_ state -> simulateNext state)
+getSimulator = do
+  gen <- newStdGen
+  play
+    (InWindow "Simulator" (500, 500) (0, 0))
+    white
+    1
+    (newSimulation 10 0 20 gen) 
+    renderSim
+    (\_ state -> state)
+    (\_ state -> simulateNext state)
 
