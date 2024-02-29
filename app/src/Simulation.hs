@@ -26,5 +26,5 @@ simulateDayHelper :: Environment (Either Animal Resource) -> World (Environment 
 simulateDayHelper env = simulateDay (World env)
 
 simulateNext :: World (Environment (Either Animal Resource)) -> World (Environment (Either Animal Resource))
-simulateNext wrld@(World (Environment _ _ m))= trace (show m ++ "\n") (simulateDay wrld)
+simulateNext wrld@(World (Environment _ _ m))= trace (show m ++ "\n" ++ worldInfo wrld ++ "\n") ((simulateDay wrld) >>= updateTimer)
 

@@ -10,7 +10,10 @@ module World (
   makeResourceMap,
   merge3DArrays,
   getMap,
-  simulateDay
+  simulateDay,
+  updateTimer,
+  worldInfo,
+  envInfo
 ) where
 
 import Data.List
@@ -114,8 +117,8 @@ executeAction :: PosOrd -> Environment (Either Animal Resource) -> World (Enviro
 executeAction ((x, y, z), _) env@(Environment time poss map)  = 
   let entity = map !! x !! y !! z in getAction (World env) entity
 
-decrementTimer :: Environment e -> World (Environment e)
-decrementTimer (Environment time poss map) = World (Environment (time - 1) poss map)
+updateTimer :: Environment e -> World (Environment e)
+updateTimer (Environment time poss map) = World (Environment (time + 1) poss map)
 
 getTimer :: Environment e -> Int
 getTimer (Environment time _ _) = time

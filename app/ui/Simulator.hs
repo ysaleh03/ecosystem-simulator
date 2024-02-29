@@ -44,7 +44,7 @@ getSimulator = play
   (InWindow "Simulator" (500, 500) (0, 0))
   white
   1
-  (newSimulation 10 10 15) 
+  (newSimulation 10 0 20) 
   renderSim
   (\_ state -> state)
   (\_ state -> simulateNext state)
