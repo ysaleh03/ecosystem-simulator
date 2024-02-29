@@ -14,31 +14,31 @@ babyrabbitindex  = 3
 grassindex = 4
 waterindex = 5
 
-getSprite :: [Picture] -> Either Animal Resource -> Picture
-getSprite pics (Left (Fox _)) = pics !! foxindex
-getSprite pics (Left (Rabbit _)) = pics !! rabbitindex
-getSprite pics (Right (Grass _ _)) = pics !! grassindex
-getSprite pics (Right (Water _ _)) = pics !! waterindex
-getSprite _ _ = color white $ rectangleSolid 10 10 
+renderAnimal :: [Picture] -> Animal -> Point -> Picture
+renderAnimal pics (Fox _) (x,y) = Translate x y $ pics !! foxindex
+renderAnimal pics (Rabbit _) (x,y) = Translate x y $ pics !! rabbitindex
 
-renderEither :: [Picture] -> Either Animal Resource -> Point -> Picture
-renderEither pics either (x,y) = Translate x y $ getSprite pics either
+renderResource :: [Picture] -> Resource -> Point -> Picture
+renderResource pics (Grass _ _) (x,y) = Translate x y $ pics !! grassindex
+renderResource pics (Water _ _) (x,y) = Translate x y $ pics !! waterindex
 
 renderEithers :: [Picture] -> [Either Animal Resource] -> Picture
-renderEithers pics eithers = pictures $ zipWith (renderEither pics) (take 9 eithers) positions
+renderEithers pics eithers = pictures ((zipWith (renderResource pics) (take 9 resources) positions)
+                                      ++ (zipWith (renderAnimal pics)   (take 9 animals)   positions))
   where
-    positions = [(x, y) | x <- [-10,0,10], y <- [10,0,-10]]
+    positions = [(x, y) | y <- [-10,0,10], x <- [10,0,-10]]
+    resources = [resource | Right resource <- eithers]
+    animals   = [animal   | Left  animal   <- eithers]
 
-renderSim :: [Picture] -> World (Environment (Either Animal Resource)) ->  Picture
-renderSim pics wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0..dim-1] ]
+renderSim :: Int -> [Picture] -> World (Environment (Either Animal Resource)) ->  Picture
+renderSim size pics wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0..dim-1] ]
   where
     mapData = getMap wrld
     dim = length mapData
     renderCell i j = 
-      let x = (fromIntegral j * 30) - 150 + 15 in
-      let y = (fromIntegral i * 30) - 150 + 15 in
-      let color = black in
-      Translate x y $ pictures [Color color $ rectangleSolid 30 30, renderEithers pics (mapData !! i !! j)]
+      let x = (fromIntegral j * 30) - (fromIntegral size / 2) + 15 in
+      let y = (fromIntegral i * 30) - (fromIntegral size / 2) + 15 in
+      Translate x y $ pictures [Color black $ rectangleSolid 30 30, renderEithers pics (mapData !! i !! j)]
 
 getSimulator :: IO ()
 getSimulator = do
@@ -48,21 +48,23 @@ getSimulator = do
   adultFoxSprite    <- loadJuicyPNG "assets/adultfox10.png"
   babyFoxSprite     <- loadJuicyPNG "assets/babyfox.png"
   adultRabbitSprite <- loadJuicyPNG "assets/adultrabbit.png"
-  babyRabbitSprite  <- loadJuicyPNG "assets/babyrbbit.png"
+  babyRabbitSprite  <- loadJuicyPNG "assets/babyrabbit.png"
   grassSprite       <- loadJuicyPNG "assets/grass10.png"
   waterSprite       <- loadJuicyPNG "assets/water10.png"
   
   play 
-    (InWindow "Simulator" (300, 300) (20, 20))
+    (InWindow "Simulator" (size, size) (20, 20))
     white 
     1 
-    (newSimulation 10 100 10 gen) 
-    (renderSim [ fromMaybe (color orange $ circleSolid 10) adultFoxSprite, 
-                 fromMaybe (color orange $ circleSolid 5) babyFoxSprite,
-                 fromMaybe (color white  $ circleSolid 5) adultRabbitSprite,
-                 fromMaybe (color white  $ circleSolid 2) babyRabbitSprite,
-                 fromMaybe (color green  $ rectangleSolid 10 10) grassSprite,
-                 fromMaybe (color blue   $ rectangleSolid 10 10) waterSprite ])
+    (newSimulation dim 100 600 gen) 
+    (renderSim size [fromMaybe (color orange $ circleSolid 10) adultFoxSprite, 
+                     fromMaybe (color orange $ circleSolid 5) babyFoxSprite,
+                     fromMaybe (color white  $ circleSolid 5) adultRabbitSprite,
+                     fromMaybe (color white  $ circleSolid 2) babyRabbitSprite,
+                     fromMaybe (color green  $ rectangleSolid 10 10) grassSprite,
+                     fromMaybe (color blue   $ rectangleSolid 10 10) waterSprite])
     (\_ state -> state)
     (\_ state -> simulateNext state)
-
+  where
+    dim = 20
+    size = dim * 30
