@@ -29,7 +29,7 @@ module Entity (
   Want (..),
   Map (..),
   randomGrid3D,
-  merge3DArrays,
+  --merge3DArrays,
   makeEmptyMap,
   Pos (..)
 ) where
@@ -61,22 +61,22 @@ data Want = Food | Drink | Mate
   deriving (Show)
 
 class Entity e where 
-    -- if successful, return True otherwise False
-    eat   :: World (Environment e) -> e -> World (Environment e) --
-    drink :: World (Environment e) -> e -> World (Environment e) --
-    mate  :: World (Environment e) -> e -> World (Environment e) --
-    findWant  :: World (Environment e) -> e -> Want -> [e] --
-    move  :: World (Environment e) -> e -> Pos -> World (Environment e) --
+    -- action functions take in a World and something else, and return an updated World
+    eat   :: World (Environment (Either Animal Resource)) -> e -> World (Environment (Either Animal Resource)) --
+    drink :: World (Environment (Either Animal Resource)) -> e -> World (Environment (Either Animal Resource)) --
+    mate  :: World (Environment (Either Animal Resource)) -> e -> World (Environment (Either Animal Resource)) --
+    move  :: World (Environment (Either Animal Resource)) -> e -> Pos -> World (Environment (Either Animal Resource)) --
+    getAction :: World (Environment (Either Animal Resource)) -> e -> World (Environment (Either Animal Resource)) --
+    wander :: World (Environment (Either Animal Resource)) -> e -> World (Environment (Either Animal Resource))
+    findWant  :: World (Environment (Either Animal Resource)) -> e -> Want -> [Either Animal Resource] --
     getHunger :: e -> Double --
     getThirst :: e -> Double --
     getUrge :: e -> Double --
     getSenseRadius :: e -> Int --
     getSpeed :: e -> Int --
     getPos :: e -> (Int, Int, Int) --
-    getAction :: World (Environment e) -> e -> World (Environment e) --
-    isOnWant :: e -> Want -> Map e -> Bool --
-    filterWant :: e -> [e] -> Want -> [e] --
-    wander :: World (Environment e) -> e -> World (Environment e)
+    isOnWant :: e -> Want -> Map (Either Animal Resource) -> Bool --
+    filterWant :: e -> [(Either Animal Resource)] -> Want -> [(Either Animal Resource)] --
     ageUp :: e -> e --
     isExpired :: e -> Bool --
     updatePos :: e -> Pos -> e --
@@ -103,4 +103,3 @@ data Animal = Fox DefaultAnimal | Rabbit DefaultAnimal
 -- position of resource
 data Resource = Grass Double Pos | Water Double Pos
   deriving (Show)
-

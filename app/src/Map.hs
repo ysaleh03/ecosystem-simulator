@@ -3,7 +3,7 @@ module Map (
   Pos (..),
   OrdPos(..),
   randomGrid3D,
-  merge3DArrays,
+  --merge3DArrays,
   makeEmptyMap
 ) where
 
@@ -17,23 +17,17 @@ makeEmptyMap :: Int -> [[[t]]]
 makeEmptyMap n =
   [[[] | _<-[1..n]] | _<-[1..n]]
 
+{-
 merge3DArrays :: [[[t]]] -> [[[t]]] -> [[[t]]]
 merge3DArrays [] [] = []
 merge3DArrays (x:xs) (y:ys) = merge2DArrays x y : merge3DArrays xs ys
 merge3DArrays _ _ = error "Arrays must have the same dimensions"
+-}
 
 merge2DArrays :: [[t]] -> [[t]] -> [[t]]
 merge2DArrays [] [] = []
 merge2DArrays (x:xs) (y:ys) = x : merge2DArrays xs ys
 merge2DArrays _ _ = error "Arrays must have the same dimensions"
-
---data MapDefaultAnimal = MapDefaultAnimal Double Double Double Int Int Bool (Int, Int, Int)
-
---data MapAnimal = Fox MapDefaultAnimal | Rabbit MapDefaultAnimal
-
--- instance Show Animal where
-  -- show (Fox _) = "Fox"
-  -- show (Rabbit _) = "Rabbit"
 
 -- Function to generate a random 3D grid of size n x n x n
 randomGrid3D :: Int -> t -> Map t

@@ -4,20 +4,26 @@ module Simulation (
   World (..),
   Environment (..),
   Animal (..),
+  Resource (..),
   getMap
 ) where
 
 import World
+import Debug.Trace
+import System.Random
 
-newSimulation :: Int -> Int -> Int -> World (Environment Animal)
-newSimulation size time numAnimals = makeWorld (makeMap size numAnimals) time
+newSimulation :: RandomGen g => Int -> Int -> Int -> g -> World (Environment (Either Animal Resource))
+newSimulation size time numEntities gen = makeWorld (merge3DArrays animalMap resourceMap) time
+  where
+    (animalMap, gen1) = makeAnimalMap size numEntities gen
+    (resourceMap, gen2) = makeResourceMap size (5*numEntities) gen1
 
-getEnv :: World (Environment Animal) -> Environment Animal
+getEnv :: World (Environment (Either Animal Resource)) -> Environment (Either Animal Resource)
 getEnv (World env) = env
 
-simulateDayHelper :: Environment Animal -> World (Environment Animal)
+simulateDayHelper :: Environment (Either Animal Resource) -> World (Environment (Either Animal Resource))
 simulateDayHelper env = simulateDay (World env)
 
-simulateNext :: World (Environment Animal) -> World (Environment Animal)
-simulateNext = simulateDay
+simulateNext :: World (Environment (Either Animal Resource)) -> World (Environment (Either Animal Resource))
+simulateNext wrld@(World (Environment _ _ m))= trace (show m ++ "\n" ++ worldInfo wrld ++ "\n") ((simulateDay wrld) >>= updateTimer)
 
