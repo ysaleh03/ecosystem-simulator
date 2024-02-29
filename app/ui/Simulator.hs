@@ -27,7 +27,7 @@ renderEither pics either (x,y) = Translate x y $ getSprite pics either
 renderEithers :: [Picture] -> [Either Animal Resource] -> Picture
 renderEithers pics eithers = pictures $ zipWith (renderEither pics) (take 9 eithers) positions
   where
-    positions = [(x, y) | x <- [-40, -30 .. 40], y <- [40, 30 .. -40]]
+    positions = [(x, y) | x <- [-10,0,10], y <- [10,0,-10]]
 
 renderSim :: [Picture] -> World (Environment (Either Animal Resource)) ->  Picture
 renderSim pics wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0..dim-1] ]
@@ -35,10 +35,10 @@ renderSim pics wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0..dim-
     mapData = getMap wrld
     dim = length mapData
     renderCell i j = 
-      let x = (fromIntegral j * 90) - 450 + 45 in
-      let y = (fromIntegral i * 90) - 450 + 45 in
+      let x = (fromIntegral j * 30) - 150 + 15 in
+      let y = (fromIntegral i * 30) - 150 + 15 in
       let color = black in
-      Translate x y $ pictures [Color color $ rectangleSolid 90 90, renderEithers pics (mapData !! i !! j)]
+      Translate x y $ pictures [Color color $ rectangleSolid 30 30, renderEithers pics (mapData !! i !! j)]
 
 getSimulator :: IO ()
 getSimulator = do
@@ -53,10 +53,10 @@ getSimulator = do
   waterSprite       <- loadJuicyPNG "assets/water10.png"
   
   play 
-    (InWindow "Simulator" (900, 900) (20, 20))
+    (InWindow "Simulator" (300, 300) (20, 20))
     white 
     1 
-    (newSimulation 10 0 20 gen) 
+    (newSimulation 10 100 10 gen) 
     (renderSim [ fromMaybe (color orange $ circleSolid 10) adultFoxSprite, 
                  fromMaybe (color orange $ circleSolid 5) babyFoxSprite,
                  fromMaybe (color white  $ circleSolid 5) adultRabbitSprite,
