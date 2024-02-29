@@ -20,6 +20,7 @@ import Data.List.Extras.Argmax
 import Data.List
 import Data.Maybe
 import System.Random
+import Debug.Trace
 
 -- initialize random  TODO
 seed = 2402241714
@@ -115,10 +116,10 @@ mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime) 
 
 -- Helper function for making sure foxes and rabbits can only mate with foxes and rabbits of the opposite gender, respectively.
 checkCanMate :: Animal -> Animal -> Bool
-checkCanMate (Fox (DefaultAnimal _ _ _ _ _ sex1 pos1 _)) (Fox (DefaultAnimal _ _ _ _ _ sex2 pos2 _)) =
-  sex1 /= sex2 && pos1 == pos2
-checkCanMate (Rabbit (DefaultAnimal _ _ _ _ _ sex1 pos1 _)) (Rabbit (DefaultAnimal _ _ _ _ _ sex2 pos2 _)) =
-  sex1 /= sex2 && pos1 == pos2
+checkCanMate (Fox (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _)) (Fox (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _)) =
+  sex1 /= sex2 && (x1,y1) == (x2,y2)
+checkCanMate (Rabbit (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _)) (Rabbit (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _)) =
+  sex1 /= sex2 && (x1,y1) == (x2,y2)
 checkCanMate _ _ = False
 
 -- helper for returning the DefaultAnimal of an Animal
@@ -359,7 +360,7 @@ instance Entity Animal where
       satisfiedAnimal2 = Left $ Fox $ mateDefaultAnimal dan
       newMap = worldMap
       entities = worldMap !! x !! y
-      (Left firstValidMate) = head [mate | mate<-entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
+      (Left firstValidMate) = head [mate | mate<-trace (show entities) entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
       dan = getDefaultAnimal firstValidMate
       maybeCheckCanMate :: Maybe Animal -> Maybe Animal -> Bool
       maybeCheckCanMate (Just animal1) (Just animal2) = checkCanMate animal1 animal2
@@ -500,7 +501,7 @@ instance Entity Resource where
   isExpired (Water amt _) = amt <= 0
 
   updatePos (Grass amt pos) newPos = Grass amt newPos
-  updatePos (Water amt pos) newPos = Grass amt newPos
+  updatePos (Water amt pos) newPos = Water amt newPos
 
   getPosOrd (Grass _ pos) = (pos,0)
   getPosOrd (Water _ pos) = (pos,0)
@@ -509,8 +510,8 @@ instance Entity Resource where
   isAnimal _ = Nothing
 
   -- die for Grass and Water behave differently, we just decrement a certain amount of resource
-  die (Grass amt pos) = Grass (amt-10.0) pos
-  die (Water amt pos) = Water (amt-10.0) pos
+  die (Grass amt pos) = Grass (amt-1.0) pos
+  die (Water amt pos) = Water (amt-1.0) pos
 
 instance (Entity l, Entity r) => Entity (Either l r) where
 

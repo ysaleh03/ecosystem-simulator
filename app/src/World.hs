@@ -70,20 +70,20 @@ insertToSorted e (h:t) comp
 
 makeRandomResource :: RandomGen g => Int -> g -> (Resource, g)
 makeRandomResource n gen =
-  if binaryResource then
+  if whichResource == 0 then
     (Grass startVal (xPos, yPos, n), gen4)
   else
     -- arbitrary number yipeeee
-    (Water 1000 (xPos, yPos, n), gen4)
+    (Water 1000.0 (xPos, yPos, n), gen4)
   where
     (startVal,gen1) = randomR (((fromIntegral n)/10.0)+1.0,fromIntegral n) gen
     (xPos,gen2) = randomR (0,n-1) gen1
     (yPos,gen3) = randomR (0,n-1) gen2
-    (binaryResource, gen4) = randomR (True,False) gen3
+    (whichResource, gen4) = uniformR (0 :: Int,1 :: Int) gen3
   
 makeRandomAnimal :: RandomGen g => Int -> g -> (Animal, g)
 makeRandomAnimal n gen =
-  if binaryAnimal then
+  if whichAnimal == 0 then
     (Fox (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 6), gen6)
   else
     (Rabbit (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 6), gen6)
@@ -93,7 +93,7 @@ makeRandomAnimal n gen =
     (sex,gen3) = randomR (True,False) gen2
     (xPos,gen4) = randomR  (0,n-1) gen3
     (yPos,gen5) = randomR (0,n-1) gen4
-    (binaryAnimal, gen6) = randomR (True,False) gen5
+    (whichAnimal, gen6) = uniformR (0 :: Int,5 :: Int) gen5
 
 makeAnimalMap :: RandomGen g => Int -> Int -> g -> (Map (Either Animal Resource), g)
 makeAnimalMap size numAnimals gen = (foldr replaceEntityAt (makeEmptyMap size) (map (Left) (fst $ pairs)), head $ snd pairs)
