@@ -12,13 +12,12 @@ newMenuWindow = do
   putStr "*** Welcome to Ecosystem Simulator ***\n"
   putStr "To start a new Simulation, please enter the following:\n"
   putStr "Will default to 10 100 100"
+  
   putStr "\n1. Map dimension: "
   dim <- getLine
   putStr "\n2. Number of entities to add: "
   num <- getLine
-
-  putStr "\ESC[2J"
-
+  
   putStr "*** Ecosystem Simulator ***"
   putStr ("Map size = " ++ dim ++ ", Init entities = " ++ num)
 
