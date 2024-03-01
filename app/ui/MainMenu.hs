@@ -11,7 +11,7 @@ newMenuWindow = do
   hSetBuffering stdout NoBuffering
   putStr "*** Welcome to Ecosystem Simulator ***\n"
   putStr "To start a new Simulation, please enter the following:\n"
-  putStr "Will default to 10 100 100"
+  putStr "Will default to 10 and 100"
   
   putStr "\n1. Map dimension: "
   dim <- getLine
