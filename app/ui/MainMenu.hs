@@ -1,37 +1,26 @@
 module MainMenu where
 
 import Control.Monad
---import Graphics.UI.Gtk
-import Simulator
+import Data.Maybe
+import Text.Read
+import System.IO
+import Simulator 
 
 newMenuWindow :: IO ()
-newMenuWindow = getSimulator
-{-
-  void initGUI
+newMenuWindow = do
+  hSetBuffering stdout NoBuffering
+  putStr "*** Welcome to Ecosystem Simulator ***\n"
+  putStr "To start a new Simulation, please enter the following:\n"
+  putStr "Will default to 10 100 100"
+  putStr "\n1. Map dimension: "
+  dim <- getLine
+  putStr "\n2. Number of entities to add: "
+  num <- getLine
+  putStr "\n3. Number of cycles to run for: "
+  time <- getLine
+  putStr "\ESC[2J"
 
-  window <- windowNew
-  void $ on window objectDestroy mainQuit
+  putStr "*** Ecosystem Simulator ***"
+  putStr ("Map size = " ++ dim ++ ", Init entities = " ++ num ++ ", Cycles remaining = " ++ time)
 
-  set window [windowTitle := "Main Menu",
-              windowDefaultWidth := 200,
-              windowDefaultHeight := 150,
-              containerBorderWidth := 10]
-
-  vbox <- vBoxNew False 5
-  containerAdd window vbox
-
-  simButton  <- buttonNewWithLabel "Simulator"
-  credButton <- buttonNewWithLabel "Credits"
-  wikiButton <- buttonNewWithLabel "Wiki Page"
-
-  _ <- on simButton buttonActivated $ do
-    simulator <- newSimulatorWindow
-    widgetShowAll simulator
-
-  boxPackStart vbox simButton  PackNatural 0
-  boxPackStart vbox credButton PackNatural 1
-  boxPackStart vbox wikiButton PackNatural 2
- 
-  widgetShowAll window
-  return window
--}
+  getSimulator (fromMaybe 10 (readMaybe dim)) (fromMaybe 100 (readMaybe time)) (fromMaybe 100 (readMaybe num))

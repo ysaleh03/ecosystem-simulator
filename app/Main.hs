@@ -7,4 +7,4 @@ import Simulator
 
 main :: IO ()
 main = do
-  getSimulator
+  newMenuWindow
