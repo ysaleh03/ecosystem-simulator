@@ -52,8 +52,8 @@ renderSim size pics wrld = pictures [ renderCell i j | i <- [0..dim-1], j <- [0.
 -- 2. turns remaining
 -- 3. number of entities (Animal | Resource)
 -- returns: a window displaying the simulation
-getSimulator :: Int -> Int -> Int -> IO ()
-getSimulator dim time num = do
+getSimulator :: Int -> Int -> IO ()
+getSimulator dim num = do
 
   -- std random generator for randomness
   gen <- newStdGen
@@ -72,7 +72,8 @@ getSimulator dim time num = do
     (InWindow "Simulator" (size, size) (20, 20))
     white 
     1 
-    (newSimulation dim time num gen) 
+
+    (newSimulation dim 0 num gen) 
     (renderSim size [fromMaybe (color orange $ circleSolid 10) adultFoxSprite, 
                      fromMaybe (color orange $ circleSolid 5) babyFoxSprite,
                      fromMaybe (color white  $ circleSolid 5) adultRabbitSprite,

@@ -16,11 +16,10 @@ newMenuWindow = do
   dim <- getLine
   putStr "\n2. Number of entities to add: "
   num <- getLine
-  putStr "\n3. Number of cycles to run for: "
-  time <- getLine
+
   putStr "\ESC[2J"
 
   putStr "*** Ecosystem Simulator ***"
-  putStr ("Map size = " ++ dim ++ ", Init entities = " ++ num ++ ", Cycles remaining = " ++ time)
+  putStr ("Map size = " ++ dim ++ ", Init entities = " ++ num)
 
-  getSimulator (fromMaybe 10 (readMaybe dim)) (fromMaybe 100 (readMaybe time)) (fromMaybe 100 (readMaybe num))
+  getSimulator (fromMaybe 10 (readMaybe dim)) (fromMaybe 100 (readMaybe num))

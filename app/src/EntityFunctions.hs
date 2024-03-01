@@ -18,7 +18,6 @@ import Data.List.Extras.Argmax
 import Data.List
 import Data.Maybe
 import System.Random
-import Debug.Trace
 
 -- get the position and speed pair from an entity
 getPosOrdEntity :: Entity a => a -> PosOrd
@@ -63,47 +62,47 @@ replaceEntityAt entity worldMap =
 
 -- the function that is called when a "day/cycle" passes. Decreases their lifetime and their urges
 ageUpDefaultAnimal :: DefaultAnimal -> DefaultAnimal
-ageUpDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime) =
-  DefaultAnimal (hunger-1.0) (thirst-1.0) (urge-1.0) senseR speed sex pos (lifetime - 1)
+ageUpDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime) =
+  DefaultAnimal (hunger-tickHunger) (thirst-tickThirst) (urge-tickUrge) senseR speed sex pos (lifetime - 1) maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime
 
 -- returns a copy of the DefaultAnimal with an updated position
 updatePosDefaultAnimal :: DefaultAnimal -> Pos -> DefaultAnimal
-updatePosDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex _ lifetime) pos =
-  DefaultAnimal hunger thirst urge senseR speed sex pos lifetime
+updatePosDefaultAnimal (DefaultAnimal hunger thirst urge senseR speed sex _ lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime) pos =
+  DefaultAnimal hunger thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime
 
 -- gets the hunger of a DefaultAnimal
 getHungerDefaultAnimal :: DefaultAnimal -> Double
-getHungerDefaultAnimal (DefaultAnimal hunger _ _ _ _ _ _ _) = hunger
+getHungerDefaultAnimal (DefaultAnimal hunger _ _ _ _ _ _ _ _ _ _ _ _ _ _) = hunger
 
 -- gets the thirst of a DefaultAnimal
 getThirstDefaultAnimal :: DefaultAnimal -> Double
-getThirstDefaultAnimal (DefaultAnimal _ thirst _ _ _ _ _ _) = thirst
+getThirstDefaultAnimal (DefaultAnimal _ thirst _ _ _ _ _ _ _ _ _ _ _ _ _) = thirst
 
 -- gets the urge of a DefaultAnimal
 getUrgeDefaultAnimal :: DefaultAnimal -> Double
-getUrgeDefaultAnimal (DefaultAnimal _ _ urge _ _ _ _ _) = urge
+getUrgeDefaultAnimal (DefaultAnimal _ _ urge _ _ _ _ _ _ _ _ _ _ _ _ ) = urge
 
 -- gets the sense radius of a DefaultAnimal
 getSenseRadiusDefaultAnimal :: DefaultAnimal -> Int
-getSenseRadiusDefaultAnimal (DefaultAnimal _ _ _ senseR _ _ _ _) = senseR
+getSenseRadiusDefaultAnimal (DefaultAnimal _ _ _ senseR _ _ _ _ _ _ _ _ _ _ _) = senseR
 
 -- for eat, drink, mate, etc. 
 -- Maybe we should have values for satiated (max amount they can store instead of 10.0)
 --  and also values for how much the meters decrement by each day?
 --  brings the eat meter to its max value (animal is satiated)
 eatDefaultAnimal :: DefaultAnimal -> DefaultAnimal
-eatDefaultAnimal (DefaultAnimal _ thirst urge senseR speed sex pos lifetime) =
-  DefaultAnimal 10.0 thirst urge senseR speed sex pos lifetime
+eatDefaultAnimal (DefaultAnimal _ thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime) =
+  DefaultAnimal maxHunger thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime
 
 -- brings the drink meter to its max value (animal is quenched)
 drinkDefaultAnimal :: DefaultAnimal -> DefaultAnimal
-drinkDefaultAnimal (DefaultAnimal hunger _ urge senseR speed sex pos lifetime) =
-  DefaultAnimal hunger 10.0 urge senseR speed sex pos lifetime
+drinkDefaultAnimal (DefaultAnimal hunger _ urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime) =
+  DefaultAnimal hunger maxThirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime
 
 -- brings the urge meter to its max value (animal is satisfied)
 mateDefaultAnimal :: DefaultAnimal -> DefaultAnimal
-mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime) =
-  DefaultAnimal hunger thirst 10.0 senseR speed sex pos lifetime
+mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime) =
+  DefaultAnimal hunger thirst maxUrge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime
 
 {- END DEFAULTANIMAL HELPERS -}
 
@@ -111,9 +110,9 @@ mateDefaultAnimal (DefaultAnimal hunger thirst _ senseR speed sex pos lifetime) 
 
 -- Helper function for making sure foxes and rabbits can only mate with foxes and rabbits of the opposite gender, respectively.
 checkCanMate :: Animal -> Animal -> Bool
-checkCanMate (Fox (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _)) (Fox (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _)) =
+checkCanMate (Fox (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _ _ _ _ _ _ _ _)) (Fox (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _ _ _ _ _ _ _ _)) =
   sex1 /= sex2 && (x1,y1) == (x2,y2)
-checkCanMate (Rabbit (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _)) (Rabbit (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _)) =
+checkCanMate (Rabbit (DefaultAnimal _ _ _ _ _ sex1 (x1,y1,_) _ _ _ _ _ _ _ _)) (Rabbit (DefaultAnimal _ _ _ _ _ sex2 (x2,y2,_) _ _ _ _ _ _ _ _)) =
   sex1 /= sex2 && (x1,y1) == (x2,y2)
 checkCanMate _ _ = False
 
@@ -124,26 +123,90 @@ getDefaultAnimal (Rabbit da) = da
 
 -- creates a new Animal with inherited traits at the position of the parents, given two parents
 createBabyAnimal :: World (Environment (Either Animal Resource)) -> Animal -> Animal -> World (Environment (Either Animal Resource))
-createBabyAnimal (World (Environment time poss worldMap gen)) (Fox (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1)) (Fox (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2))
-  | u1 > u2 = 
-    let babyAnimal = Fox (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)
-        newMap = replaceEntityAt (Left babyAnimal) worldMap
-    in World (Environment time poss newMap gen)
-    
-  | otherwise = 
-    let babyAnimal = Fox (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10)
-        newMap = replaceEntityAt (Left babyAnimal) worldMap
-    in World (Environment time poss newMap gen)
-createBabyAnimal (World (Environment time poss worldMap gen)) (Rabbit (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1)) (Rabbit (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2))
-  | u1 > u2 = 
-    let babyAnimal = Rabbit (DefaultAnimal 10.0 10.0 15.0 r1 s2 x1 (p11,p12,length (worldMap !! p11 !! p12)) 10)
-        newMap = replaceEntityAt (Left babyAnimal) worldMap
-    in World (Environment time poss newMap gen)
-    
-  | otherwise = 
-    let babyAnimal = Rabbit (DefaultAnimal 10.0 10.0 15.0 r2 s1 x2 (p11,p12,length (worldMap !! p11 !! p12)) 10)
-        newMap = replaceEntityAt (Left babyAnimal) worldMap
-    in World (Environment time poss newMap gen)
+createBabyAnimal (World (Environment time poss worldMap gen)) (Fox (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1 mh1 mt1 mu1 th1 tt1 tu1 ml1)) (Fox (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2 mh2 mt2 mu2 th2 tt2 tu2 ml2)) =
+  let newMap = replaceEntityAt (Left babyAnimal) worldMap
+  in World (Environment time poss newMap genI)
+  where
+    (gen1, gen2) = split gen
+    (gen3, gen4) = split gen2
+    -- get which parent's traits to inherit (+ Sex)
+    defaultInheritance = take 9 (randomRs (True, False) gen1)
+    -- get whether a trait mutates or not, currently a mutation occurs at a rate of 1 in 1000
+    parentsIntTraits = zip (take 3 defaultInheritance) (zip [r1,s1,ml1] [r2,s2,ml2])
+    parentsDoubleTraits = zip (drop 3 defaultInheritance) (zip [mh1,mt1,mu1,th1,tt1,tu1] [mh2,mt2,mu2,th2,tt2,tu2])
+    [nSense, nSpeed, nLifetime] = [if whichInherit then parent1 else parent2 | (whichInherit, (parent1,parent2))<-parentsIntTraits]
+    nSex = if fst $ randomR (True, False) gen3 then x1 else x2
+    [nMaxHunger, nMaxThirst, nMaxUrge, nTickHunger, nTickThirst, nTickUrge] = [if whichInherit then parent1 else parent2 | (whichInherit, (parent1, parent2))<-parentsDoubleTraits]
+    [mutSense,mutSpeed,mutLifetime,mutMaxHunger,mutMaxThirst,mutMaxUrge,mutTickHunger,mutTickThirst,mutTickUrge] = [t == 0 | t <- take 9 (randomRs (0,1000::Int) gen2)]
+    -- play around with the following mutation modifiers!
+    (modSense, genA) = randomR (-1,1::Int) gen4
+    (modSpeed, genB) = randomR (-1,1::Int) genA
+    (modLifetime, genC) = randomR (-2,2::Int) genB
+    (modMaxHunger, genD) = randomR (-5.0,5.0::Double) genC
+    (modMaxThirst, genE) = randomR (-5.0,5.0::Double) genD
+    (modMaxUrge, genF) = randomR (-5.0,5.0::Double) genE
+    (modTickHunger, genG) = randomR (-0.5,0.5::Double) genF
+    (modTickThirst, genH) = randomR (-0.5,0.5::Double) genG
+    (modTickUrge, genI) = randomR (-0.5,0.5::Double) genH
+    babyAnimal = Fox (DefaultAnimal
+        (nMaxHunger + (if mutMaxHunger then modMaxHunger else 0))
+        (nMaxThirst + (if mutMaxThirst then modMaxThirst else 0))
+        (nMaxUrge + (if mutMaxUrge then modMaxUrge else 0))
+        (nSense + (if mutSense then modSense else 0))
+        (nSpeed + (if mutSpeed then modSpeed else 0))
+        (nSex)
+        ((p11,p12,length (worldMap !! p11 !! p12)))
+        (nLifetime + (if mutLifetime then modLifetime else 0))
+        (nMaxHunger + (if mutMaxHunger then modMaxHunger else 0))
+        (nMaxThirst + (if mutMaxThirst then modMaxThirst else 0))
+        (nMaxUrge + (if mutMaxUrge then modMaxUrge else 0))
+        (nTickHunger + (if mutTickHunger then modTickHunger else 0))
+        (nTickThirst + (if mutTickThirst then modTickThirst else 0))
+        (nTickUrge + (if mutTickUrge then modTickUrge else 0))
+        (nLifetime + (if mutLifetime then modLifetime else 0)))
+        
+createBabyAnimal (World (Environment time poss worldMap gen)) (Rabbit (DefaultAnimal h1 t1 u1 r1 s1 x1 (p11,p12,p13) l1 mh1 mt1 mu1 th1 tt1 tu1 ml1)) (Rabbit (DefaultAnimal h2 t2 u2 r2 s2 x2 (p21,p22,p23) l2 mh2 mt2 mu2 th2 tt2 tu2 ml2)) =
+  let newMap = replaceEntityAt (Left babyAnimal) worldMap
+  in World (Environment time poss newMap genI)
+  where
+    (gen1, gen2) = split gen
+    (gen3, gen4) = split gen2
+    -- get which parent's traits to inherit (+ Sex)
+    defaultInheritance = take 9 (randomRs (True, False) gen1)
+    -- get whether a trait mutates or not, currently a mutation occurs at a rate of 1 in 1000
+    parentsIntTraits = zip (take 3 defaultInheritance) (zip [r1,s1,ml1] [r2,s2,ml2])
+    parentsDoubleTraits = zip (drop 3 defaultInheritance) (zip [mh1,mt1,mu1,th1,tt1,tu1] [mh2,mt2,mu2,th2,tt2,tu2])
+    [nSense, nSpeed, nLifetime] = [if whichInherit then parent1 else parent2 | (whichInherit, (parent1,parent2))<-parentsIntTraits]
+    nSex = if fst $ randomR (True, False) gen3 then x1 else x2
+    [nMaxHunger, nMaxThirst, nMaxUrge, nTickHunger, nTickThirst, nTickUrge] = [if whichInherit then parent1 else parent2 | (whichInherit, (parent1, parent2))<-parentsDoubleTraits]
+    [mutSense,mutSpeed,mutLifetime,mutMaxHunger,mutMaxThirst,mutMaxUrge,mutTickHunger,mutTickThirst,mutTickUrge] = [t == 0 | t <- take 9 (randomRs (0,1000::Int) gen2)]
+    -- play around with the following mutation modifiers!
+    (modSense, genA) = randomR (-1,1::Int) gen4
+    (modSpeed, genB) = randomR (-1,1::Int) genA
+    (modLifetime, genC) = randomR (-2,2::Int) genB
+    (modMaxHunger, genD) = randomR (-5.0,5.0::Double) genC
+    (modMaxThirst, genE) = randomR (-5.0,5.0::Double) genD
+    (modMaxUrge, genF) = randomR (-5.0,5.0::Double) genE
+    (modTickHunger, genG) = randomR (-0.5,0.5::Double) genF
+    (modTickThirst, genH) = randomR (-0.5,0.5::Double) genG
+    (modTickUrge, genI) = randomR (-0.5,0.5::Double) genH
+    babyAnimal = Rabbit (DefaultAnimal
+        (nMaxHunger + (if mutMaxHunger then modMaxHunger else 0))
+        (nMaxThirst + (if mutMaxThirst then modMaxThirst else 0))
+        (nMaxUrge + (if mutMaxUrge then modMaxUrge else 0))
+        (nSense + (if mutSense then modSense else 0))
+        (nSpeed + (if mutSpeed then modSpeed else 0))
+        (nSex)
+        ((p11,p12,length (worldMap !! p11 !! p12)))
+        (nLifetime + (if mutLifetime then modLifetime else 0))
+        (nMaxHunger + (if mutMaxHunger then modMaxHunger else 0))
+        (nMaxThirst + (if mutMaxThirst then modMaxThirst else 0))
+        (nMaxUrge + (if mutMaxUrge then modMaxUrge else 0))
+        (nTickHunger + (if mutTickHunger then modTickHunger else 0))
+        (nTickThirst + (if mutTickThirst then modTickThirst else 0))
+        (nTickUrge + (if mutTickUrge then modTickUrge else 0))
+        (nLifetime + (if mutLifetime then modLifetime else 0)))
+
 createBabyAnimal world _ _ = world
 
 {- END ANIMAL HELPERS -}
@@ -153,10 +216,10 @@ instance Entity Animal where
   -- this is used since we do not remove them until the end of the day cycle
   -- An animal is slated to die, since the lifetime of an animal only decreases, setting it to a value below 0 should remove it from the map on the next iteration.
   --    ie. marking it for removal
-  die (Fox (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime)) =
-    Fox (DefaultAnimal hunger thirst urge senseR speed sex pos (-1))
-  die (Rabbit (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime)) =
-    Rabbit (DefaultAnimal hunger thirst urge senseR speed sex pos (-1))
+  die (Fox (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
+    Fox (DefaultAnimal hunger thirst urge senseR speed sex pos (-1) maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)
+  die (Rabbit (DefaultAnimal hunger thirst urge senseR speed sex pos lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
+    Rabbit (DefaultAnimal hunger thirst urge senseR speed sex pos (-1) maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)
 
   -- animal wanders around the map, since it cannot find the want it is searching for
   -- computes a random position to move to, and then calls move with that position.
@@ -178,9 +241,9 @@ instance Entity Animal where
   ageUp (Rabbit da) = Rabbit $ ageUpDefaultAnimal da
 
   -- lifetime runs out, or some meter reaches 0, we return true (animal should be dead)
-  isExpired (Fox (DefaultAnimal hunger thirst urge _ _ _ _ lifetime)) =
+  isExpired (Fox (DefaultAnimal hunger thirst urge _ _ _ _ lifetime _ _ _ _ _ _ _)) =
     any (<=0.0) [hunger, thirst] || lifetime <= 0
-  isExpired (Rabbit (DefaultAnimal hunger thirst urge _ _ _ _ lifetime)) =
+  isExpired (Rabbit (DefaultAnimal hunger thirst urge _ _ _ _ lifetime _ _ _ _ _ _ _)) =
     any (<=0.0) [hunger, thirst] || lifetime <= 0
 
   -- updates the position of the animal by calling the constructor on the helper that updates the position of the animal, and returns the updated animal
@@ -188,12 +251,12 @@ instance Entity Animal where
   updatePos (Rabbit da) pos = Rabbit $ updatePosDefaultAnimal da pos
 
   -- returns the speed of the animal
-  getSpeed (Fox (DefaultAnimal _ _ _ _ speed _ _ _)) = speed
-  getSpeed (Rabbit (DefaultAnimal _ _ _ _ speed _ _ _)) = speed
+  getSpeed (Fox (DefaultAnimal _ _ _ _ speed _ _ _ _ _ _ _ _ _ _)) = speed
+  getSpeed (Rabbit (DefaultAnimal _ _ _ _ speed _ _ _ _ _ _ _ _ _ _)) = speed
 
   -- returns the position of the animal
-  getPos (Fox (DefaultAnimal _ _ _ _ _ _ pos _)) = pos
-  getPos (Rabbit (DefaultAnimal _ _ _ _ _ _ pos _)) = pos
+  getPos (Fox (DefaultAnimal _ _ _ _ _ _ pos _ _ _ _ _ _ _ _)) = pos
+  getPos (Rabbit (DefaultAnimal _ _ _ _ _ _ pos _ _ _ _ _ _ _ _)) = pos
 
   -- single definition should work for all animals. Alias for getPosOrdEntity, which returns a PosOrd for some entity
   getPosOrd = getPosOrdEntity
@@ -246,48 +309,48 @@ instance Entity Animal where
   -- checks whether the animal is on the Want specified given the animal, want, and map
   --  returns true if the want exists on the same grid
   --      for instance: if a Fox and Food are passed into isOnWant, the function gets the list of entities in the same slot (x,y) as the fox, and checks to see if there is a Rabbit
-  isOnWant (Fox (DefaultAnimal _ _ _ _ _ _ (x,y,_) _)) Food worldMap = 
+  isOnWant (Fox (DefaultAnimal _ _ _ _ _ _ (x,y,_) _ _ _ _ _ _ _ _)) Food worldMap = 
     or [containsFood $ isAnimal e | e<-entities, not $ isExpired e]
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
       containsFood (Just (Rabbit _)) = True
       containsFood _ = False
-  isOnWant (Fox (DefaultAnimal _ _ _ _ _ _ (x,y,_) _)) Drink worldMap =
+  isOnWant (Fox (DefaultAnimal _ _ _ _ _ _ (x,y,_) _ _ _ _ _ _ _ _)) Drink worldMap =
     or [containsDrink $ isResource e | e<-entities, not $ isExpired e]
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
       containsDrink (Just (Water _ _)) = True
       containsDrink _ = False
-  isOnWant (Fox (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _)) Mate worldMap = 
+  isOnWant (Fox (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _ _ _ _ _ _ _ _)) Mate worldMap = 
     or [containsMate $ isAnimal e | e<-entities, not $ isExpired e] 
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
-      containsMate (Just (Fox ( DefaultAnimal _ _ _ _ _ secondSex _ _))) = secondSex /= firstSex
+      containsMate (Just (Fox ( DefaultAnimal _ _ _ _ _ secondSex _ _ _ _ _ _ _ _ _))) = secondSex /= firstSex
       containsMate _ = False
 
-  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ _ (x,y,_) _)) Food worldMap = 
+  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ _ (x,y,_) _ _ _ _ _ _ _ _)) Food worldMap = 
     or [containsFood $ isResource e | e<-entities, not $ isExpired e]
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
       containsFood (Just (Grass _ _)) = True
       containsFood _ = False
-  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ _ (x,y,_) _)) Drink worldMap =
+  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ _ (x,y,_) _ _ _ _ _ _ _ _)) Drink worldMap =
     or [containsDrink $ isResource e | e<-entities, not $ isExpired e]
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
       containsDrink (Just (Water _ _)) = True
       containsDrink _ = False
-  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _)) Mate worldMap = 
+  isOnWant (Rabbit (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _ _ _ _ _ _ _ _)) Mate worldMap = 
     or [containsMate $ isAnimal e | e<-entities, not $ isExpired e]
     where
       -- entities should never be null, since at least the animal itself is at that position
       entities = worldMap !! x !! y
-      containsMate (Just (Rabbit ( DefaultAnimal _ _ _ _ _ secondSex _ _))) = secondSex /= firstSex
+      containsMate (Just (Rabbit ( DefaultAnimal _ _ _ _ _ secondSex _ _ _ _ _ _ _ _ _))) = secondSex /= firstSex
       containsMate _ = False
 
   -- filterWant is similar to isOnWant, except it returns a list of entities based on the Animal and Want, given some list of entities
@@ -302,10 +365,10 @@ instance Entity Animal where
     where
       containsDrink (Just (Water _ _)) = True
       containsDrink _ = False
-  filterWant (Fox (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _)) entities Mate = 
+  filterWant (Fox (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _ _ _ _ _ _ _ _)) entities Mate = 
     [e| e<-entities, containsMate $ isAnimal e, not $ isExpired e]
     where
-      containsMate (Just (Fox ( DefaultAnimal _ _ _ _ _ secondSex _ _))) = secondSex /= firstSex
+      containsMate (Just (Fox ( DefaultAnimal _ _ _ _ _ secondSex _ _ _ _ _ _ _ _ _))) = secondSex /= firstSex
       containsMate _ = False
   filterWant (Rabbit _) entities Food = 
     [e | e<-entities, containsFood $ isResource e, not $ isExpired e]
@@ -317,15 +380,15 @@ instance Entity Animal where
     where
       containsDrink (Just (Water _ _)) = True
       containsDrink _ = False
-  filterWant (Rabbit (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _)) entities Mate = 
+  filterWant (Rabbit (DefaultAnimal _ _ _ _ _ firstSex (x,y,_) _ _ _ _ _ _ _ _)) entities Mate = 
     [e| e<-entities, containsMate $ isAnimal e, not $ isExpired e]
     where
-      containsMate (Just (Rabbit ( DefaultAnimal _ _ _ _ _ secondSex _ _))) = secondSex /= not firstSex
+      containsMate (Just (Rabbit ( DefaultAnimal _ _ _ _ _ secondSex _ _ _ _ _ _ _ _ _))) = secondSex /= not firstSex
       containsMate _ = False
 
   -- eat is only called if the food is found in the same slot (x,y) as the animal that is calling it!
   -- So, we pass in the world and animal, and return the world with the first valid food item "eaten" and the animal satiated
-  eat (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
+  eat (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
     World (Environment time poss newMap gen)
     where
       satiatedAnimal = Left $ Fox $ eatDefaultAnimal da
@@ -333,11 +396,11 @@ instance Entity Animal where
       newFood = die $ findFirstFood entities 
       -- should never reach the empty list case, since we check beforehand that a food item exists
       findFirstFood (entity:entities) = if isFood $ isAnimal entity then entity else findFirstFood entities
-      findFirstFood [] = Left (Rabbit (DefaultAnimal 10.0 10.0 10.0 2 2 True (x,y,0) (-1)))
+      findFirstFood [] = Left (Rabbit (DefaultAnimal 10.0 10.0 10.0 2 2 True (x,y,0) (-1) 10.0 10.0 10.0 1.0 1.0 1.0 (-1)))
       isFood (Just rabbit@(Rabbit _)) = not $ isExpired rabbit
       isFood _ = False
       newMap = replaceEntityAt satiatedAnimal (replaceEntityAt newFood worldMap)
-  eat (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
+  eat (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
     World (Environment time poss newMap gen)
     where
       satiatedAnimal = Left $ Rabbit $ eatDefaultAnimal da
@@ -351,7 +414,7 @@ instance Entity Animal where
       newMap = replaceEntityAt satiatedAnimal (replaceEntityAt newFood worldMap)
 
   -- drink is similar to eat, but for drinking. functionally, they are near identical (and ideally, if one were to refactor the code further, eat and drink (and maybe mate) would be abstracted out).
-  drink (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
+  drink (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
     World (Environment time poss newMap gen)
     where
       quenchedAnimal = Left $ Fox $ drinkDefaultAnimal da
@@ -363,7 +426,7 @@ instance Entity Animal where
       isDrink (Just water@(Water _ _)) = not $ isExpired water
       isDrink _ = False
       newMap = replaceEntityAt quenchedAnimal (replaceEntityAt newDrink worldMap)
-  drink (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) =
+  drink (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) =
     World (Environment time poss newMap gen)
     where
       quenchedAnimal = Left $ Rabbit $ drinkDefaultAnimal da
@@ -377,20 +440,20 @@ instance Entity Animal where
       newMap = replaceEntityAt quenchedAnimal (replaceEntityAt newDrink worldMap)
 
   -- mate is also similar to eat and drink, except it doesn't consume anything, but rather creates a new Animal using the createBabyAnimal helper and returns the updated world (with the animal). However, this new animal does not do anything until the next "turn"
-  mate (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) = 
+  mate (World (Environment time poss worldMap gen)) (Fox da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) = 
     createBabyAnimal (World (Environment time poss satisfiedAnimalMap gen)) (Fox da) (Fox dan)
     where
       satisfiedAnimal1 = Left $ Fox $ mateDefaultAnimal da
       satisfiedAnimal2 = Left $ Fox $ mateDefaultAnimal dan
       newMap = worldMap
       entities = worldMap !! x !! y
-      (Left firstValidMate) = head [mate | mate<-trace (show entities) entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
+      (Left firstValidMate) = head [mate | mate<-entities, maybeCheckCanMate (Just (Fox da)) (isAnimal mate)]
       dan = getDefaultAnimal firstValidMate
       maybeCheckCanMate :: Maybe Animal -> Maybe Animal -> Bool
       maybeCheckCanMate (Just animal1) (Just animal2) = checkCanMate animal1 animal2
       maybeCheckCanMate _ _ = False
       satisfiedAnimalMap = replaceEntityAt satisfiedAnimal2 (replaceEntityAt satisfiedAnimal1 worldMap)
-  mate (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime)) = 
+  mate (World (Environment time poss worldMap gen)) (Rabbit da@(DefaultAnimal hunger thirst urge senseR speed sex (x,y,z) lifetime maxHunger maxThirst maxUrge tickHunger tickThirst tickUrge maxLifetime)) = 
     createBabyAnimal (World (Environment time poss satisfiedAnimalMap gen)) (Rabbit da) (Rabbit dan)
     where
       satisfiedAnimal1 = Left $ Rabbit $ mateDefaultAnimal da

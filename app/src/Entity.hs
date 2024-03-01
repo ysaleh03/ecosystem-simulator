@@ -95,7 +95,14 @@ class Entity e where
 -- Sex (True for Male, False for Female, although this is arbitrary as the only requirement for most animals is that the sex is opposite for reproduction)
 -- Position (x,y,z coordinates on the map, z is an indicator of its "depth" as not an actual position, but rather a way to specify which animal at the (x,y) position we want)
 -- Lifetime (after this period, the animal dies regardless of its meters)
-data DefaultAnimal  = DefaultAnimal Double Double Double Int Int Bool Pos Int
+-- base max hunger
+-- base max thirst
+-- mate max urge
+-- hunger tick modifier
+-- thirst tick modifier
+-- urge tick modifier
+-- max Lifetime
+data DefaultAnimal  = DefaultAnimal Double Double Double Int Int Bool Pos Int Double Double Double Double Double Double Int
   deriving (Show)
 data Animal = Fox DefaultAnimal | Rabbit DefaultAnimal
   deriving (Show)

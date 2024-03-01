@@ -20,6 +20,7 @@ import Data.List
 import Data.List.Extras.Argmax
 import EntityFunctions
 import System.Random
+import Data.Either
 
 -- takes two 3D arrays of the same type, and merges them such that the innermost arrays are appended to each other at corresponding x and y positions (first and second indices)
 merge3DArrays :: (Entity e) => [[[e]]] -> [[[e]]] -> [[[e]]]
@@ -60,11 +61,20 @@ getSecond (_, y, _) = y
 {- END HELPERS FOR merge3DArrays -}
 
 -- some info functions helpful for debugging and getting simple information from the Environment
-envInfo :: Environment e -> String
-envInfo (Environment time orderedPositions map gen) =
-  "Time: "++show time++" Entities: "++show (length orderedPositions)++" Map Size: "++show (length map)
+envInfo :: Environment (Either Animal Resource) -> String
+envInfo (Environment time orderedPositions worldMap gen) =
+  "Time: "++show time++" Entities: "++show (length orderedPositions)++" Map Size: "++show (length worldMap) ++" Foxes: "++show nFoxes++" Rabbits: "++show nRabbits++" Grass: "++show nGrass++" Water: "++show nWater
+  where
+    nFoxes = length [a | a<-concat $ concat worldMap, isLeft a, isFox a]
+    nRabbits = length [a | a<-concat $ concat worldMap, isLeft a, not $ isFox a]
+    nGrass = length [a | a<-concat $ concat worldMap, isRight a, isGrass a]
+    nWater = length [a | a<-concat $ concat worldMap, isRight a, not $ isGrass a]
+    isFox (Left (Fox _)) = True
+    isFox _ = False
+    isGrass (Right (Grass _ _)) = True
+    isGrass _ = False
 
-worldInfo :: World (Environment e) -> String
+worldInfo :: World (Environment (Either Animal Resource)) -> String
 worldInfo (World (Environment time poss map gen)) = envInfo (Environment time poss map gen)
 
 -- Insert an element into a sorted list based on a comparison function
@@ -94,9 +104,9 @@ makeRandomResource n gen =
 makeRandomAnimal :: RandomGen g => Int -> g -> (Animal, g)
 makeRandomAnimal n gen =
   if whichAnimal == 0 then
-    (Fox (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 365), gen6)
+    (Fox (DefaultAnimal 10.0 10.0 10.0 (senseR + 1) (speed + 1) sex (xPos, yPos, n) 15 10.0 10.0 15.0 1.0 1.0 1.0 15), gen6)
   else
-    (Rabbit (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 365), gen6)
+    (Rabbit (DefaultAnimal 10.0 10.0 10.0 senseR speed sex (xPos, yPos, n) 7 10.0 10.0 12.0 0.5 1.0 1.0 7), gen6)
   where
     -- get random values for the animals
     (senseR,gen1) = randomR (2,5) gen
@@ -109,7 +119,7 @@ makeRandomAnimal n gen =
     --    can be changed though, by just changing the second parameter in the tuple passed below. The ratio of Rabbits to Foxes would then be
     --    ~k:1
     --    assuming the tuple is (0,k)
-    (whichAnimal, gen6) = uniformR (0 :: Int,5 :: Int) gen5
+    (whichAnimal, gen6) = uniformR (0 :: Int,7 :: Int) gen5
 
 -- Given the size of the map (size), the number of animals to generate (numAnimals), and a random generator (gen), returns a randomly generated map of exactly numAnimals animals consisting of ONLY Animals (still of the Either type, however), and a new random generator.
 --    it accomplishes this by repeatedly inserting randomly generated animals to a map until the desired amount is reached
