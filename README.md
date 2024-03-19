@@ -1,4 +1,4 @@
-# Ecosystem Simulator
+# Ecosystem Simulator ![adultfox](assets/adultfox.png) ![adultrabbit](assets/adultrabbit.png)
 ## Jenilee Chen, Youssef Saleh, Oleg Yurchenko
 ### What is the problem?
 In the natural world, organisms live in large ecosystems that influence their lifestyles, behaviors and even their very being. Evolution has long been one of the most interesting aspects of natural science, and many projects have been made to simulate and understand its complexity.
