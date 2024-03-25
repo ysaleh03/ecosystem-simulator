@@ -22,4 +22,4 @@ Oleg worked on the part of the project concerned with the progression of the Sim
 
 Youssef worked on creating an API for the backend, as well as a Gloss frontend.
 
-[Link to UBC Wiki entry](https://wiki.ubc.ca/Course:Cpsc312:/EcosystemSimulation)
+[Link to UBC Wiki entry](https://wiki.ubc.ca/Course:Course:CPSC312-2024/EcosystemSimulation)
